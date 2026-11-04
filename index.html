@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frostline</title>
+<style>
+  :root { --ink: #0b1220; --paper: #f5f8fc; --accent: #1f6fff; --hot: #ff5a1f; --glass: rgba(10, 18, 34, 0.72); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #cfe3f5; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #fff; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .hidden { display: none !important; }
+  button { font: inherit; cursor: pointer; }
+
+  /* ---------- overlays */
+  .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: linear-gradient(180deg, rgba(8,16,32,0.25), rgba(8,16,32,0.65)); overflow-y: auto; }
+  .panel { width: min(980px, 100%); background: var(--glass); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.12); border-radius: 18px; padding: 26px 28px; box-shadow: 0 30px 80px rgba(0,0,0,0.35); margin: auto; }
+  h1 { margin: 0; font-size: clamp(44px, 9vw, 86px); letter-spacing: 0.06em; font-weight: 900; font-style: italic; line-height: 0.95;
+       background: linear-gradient(90deg, #fff 0%, #bfe3ff 60%, #7cc4ff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tag { margin: 6px 0 20px; opacity: 0.8; letter-spacing: 0.3em; text-transform: uppercase; font-size: 12px; }
+  h2 { font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; opacity: 0.7; margin: 18px 0 8px; font-weight: 700; }
+  #maps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .card { text-align: left; background: rgba(255,255,255,0.06); color: #fff; border: 2px solid transparent; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px; transition: 0.15s; }
+  .card b { font-size: 20px; }
+  .card span { font-size: 13px; opacity: 0.75; }
+  .card em { font-size: 12px; font-style: normal; color: #9fd3ff; }
+  .card:hover { background: rgba(255,255,255,0.12); }
+  .card.on { border-color: var(--accent); background: rgba(31,111,255,0.22); }
+  .rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 20px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
+  .row label { opacity: 0.85; font-size: 14px; }
+  .seg { display: inline-flex; background: rgba(255,255,255,0.08); border-radius: 10px; padding: 3px; }
+  .seg button { border: 0; background: transparent; color: #fff; padding: 7px 12px; border-radius: 8px; font-size: 13px; opacity: 0.75; }
+  .seg button.on { background: #fff; color: var(--ink); opacity: 1; font-weight: 700; }
+  .outfit { display: inline-flex; align-items: center; gap: 8px; }
+  .outfit button { border: 0; background: rgba(255,255,255,0.12); color: #fff; width: 30px; height: 30px; border-radius: 8px; }
+  .outfit span { min-width: 70px; text-align: center; font-weight: 700; }
+  .actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+  .big { border: 0; padding: 14px 34px; border-radius: 12px; font-weight: 900; letter-spacing: 0.12em; font-size: 18px; background: var(--hot); color: #fff; box-shadow: 0 8px 24px rgba(255,90,31,0.4); }
+  .big:hover { filter: brightness(1.08); }
+  .ghost { border: 1px solid rgba(255,255,255,0.3); padding: 12px 22px; border-radius: 12px; background: transparent; color: #fff; font-weight: 700; letter-spacing: 0.08em; }
+  .ghost:hover { background: rgba(255,255,255,0.1); }
+  .sheet { font-size: 13px; line-height: 1.9; opacity: 0.9; columns: 2 300px; }
+  .sheet div { break-inside: avoid; }
+  kbd { display: inline-block; min-width: 22px; padding: 1px 6px; margin: 0 3px 0 0; border-radius: 5px; background: rgba(255,255,255,0.16); border-bottom: 2px solid rgba(255,255,255,0.25); font: 700 12px/18px system-ui, sans-serif; text-align: center; }
+
+  /* ---------- controls */
+  #controls .panel { max-width: 760px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td { padding: 6px 6px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  td small { opacity: 0.6; }
+  td:not(:first-child) { width: 120px; text-align: center; }
+  .key { width: 110px; padding: 7px 0; border-radius: 8px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); color: #fff; font-weight: 700; }
+  .key:hover { background: rgba(255,255,255,0.18); }
+  .key.wait { background: var(--accent); border-color: var(--accent); }
+  .note { font-size: 12px; opacity: 0.6; margin-top: 10px; }
+
+  /* ---------- HUD */
+  #hud { position: fixed; inset: 0; pointer-events: none; text-shadow: 0 2px 8px rgba(0,0,0,0.35); }
+  #scoreBox { position: absolute; top: 16px; right: 20px; text-align: right; }
+  #score { font-size: 40px; font-weight: 900; font-style: italic; letter-spacing: 0.02em; }
+  #best { font-size: 12px; letter-spacing: 0.2em; opacity: 0.8; }
+  #modeLabel { position: absolute; top: 18px; left: 20px; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700; opacity: 0.9; }
+  #speed { position: absolute; bottom: 18px; left: 20px; font-size: 26px; font-weight: 900; font-style: italic; }
+  #trick { position: absolute; top: 22%; left: 0; right: 0; text-align: center; font-size: clamp(22px, 4vw, 40px); font-weight: 900; font-style: italic; letter-spacing: 0.02em; }
+  #trick i { font-size: 0.6em; opacity: 0.8; margin-left: 8px; }
+  #combo { position: absolute; bottom: 70px; left: 0; right: 0; text-align: center; font-size: 15px; opacity: 0; transition: opacity 0.2s; padding: 0 16px; }
+  #combo b { font-size: 26px; color: #ffd166; }
+  #combo.on { opacity: 1; }
+  #popups { position: absolute; top: 90px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: 70vw; }
+  .pop { background: rgba(10,18,34,0.55); padding: 8px 14px; border-radius: 10px; border-left: 4px solid #39d98a; animation: popin 0.25s ease-out; transition: opacity 0.6s, transform 0.6s; text-align: right; }
+  .pop b { display: block; font-size: 22px; font-weight: 900; font-style: italic; }
+  .pop span { font-size: 13px; opacity: 0.9; }
+  .pop.warn { border-color: #ffd166; }
+  .pop.bad { border-color: #ff4d4d; }
+  .pop.big { border-color: #ffd166; background: rgba(255,90,31,0.55); }
+  .pop.fade { opacity: 0; transform: translateX(20px); }
+  @keyframes popin { from { transform: translateX(30px) scale(0.9); opacity: 0; } to { transform: none; opacity: 1; } }
+  #hint { position: absolute; bottom: 18px; right: 20px; font-size: 12px; opacity: 0.7; }
+
+  #finish .panel { max-width: 460px; text-align: center; }
+  #finScore { font-size: 64px; font-weight: 900; font-style: italic; }
+  #finBest { color: #ffd166; letter-spacing: 0.2em; font-weight: 700; }
+
+  @media (max-width: 600px) {
+    .panel { padding: 18px 16px; }
+    #score { font-size: 28px; }
+    .sheet { columns: 1; }
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="modeLabel"></div>
+  <div id="scoreBox"><div id="score">0</div><div id="best"></div></div>
+  <div id="popups"></div>
+  <div id="trick"></div>
+  <div id="combo"></div>
+  <div id="speed"></div>
+  <div id="hint">Esc pause · R checkpoint · C camera</div>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="panel">
+    <h1>FROSTLINE</h1>
+    <div class="tag">Snow park sessions · ski &amp; snowboard</div>
+    <h2>Course</h2>
+    <div id="maps"></div>
+    <h2>Rider</h2>
+    <div class="rows">
+      <div class="row"><label>Sport</label><div class="seg" id="sportSel"><button data-v="snowboard">Snowboard</button><button data-v="ski">Ski</button></div></div>
+      <div class="row" id="stanceRow"><label>Stance</label><div class="seg" id="stanceSel"><button data-v="regular">Regular</button><button data-v="goofy">Goofy</button></div></div>
+      <div class="row"><label>Outfit</label><div class="outfit"><button id="outPrev">‹</button><span id="outfitName"></span><button id="outNext">›</button></div></div>
+      <div class="row"><label>Jump speed assist</label><div class="seg" id="assistSel"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
+      <div class="row"><label>Graphics</label><div class="seg" id="qualitySel"><button data-v="0">Low</button><button data-v="1">Med</button><button data-v="2">High</button></div></div>
+      <div class="row"><label>Sound</label><div class="seg" id="soundSel"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
+    </div>
+    <div class="actions"><button class="big" id="playBtn">DROP IN</button><button class="ghost" id="controlsBtn">CONTROLS / KEYBINDS</button></div>
+    <h2>How to ride</h2>
+    <div class="sheet" id="menuSheet"></div>
+  </div>
+</div>
+
+<div id="pause" class="overlay hidden">
+  <div class="panel" style="max-width:640px">
+    <h1 style="font-size:52px">PAUSED</h1>
+    <div class="actions" style="margin:16px 0 10px">
+      <button class="big" id="resumeBtn">RESUME</button>
+      <button class="ghost" id="restartBtn">RESTART RUN</button>
+      <button class="ghost" id="pauseControlsBtn">KEYBINDS</button>
+      <button class="ghost" id="menuBtn">MAIN MENU</button>
+    </div>
+    <div class="sheet" id="pauseSheet"></div>
+  </div>
+</div>
+
+<div id="controls" class="overlay hidden">
+  <div class="panel">
+    <h2 style="margin-top:0">Controls — click a key to rebind</h2>
+    <table id="bindTable"></table>
+    <div class="note">Click a slot, then press the new key. Backspace clears a slot. Escape cancels. Gamepad: left stick / d-pad steer &amp; flip, A jump, X / B / Y / RT grabs, LT alt grabs, LB / RB roll, Start pause.</div>
+    <div class="actions"><button class="big" id="closeControls">DONE</button><button class="ghost" id="resetBinds">RESET DEFAULTS</button></div>
+  </div>
+</div>
+
+<div id="finish" class="overlay hidden">
+  <div class="panel">
+    <h2 style="margin-top:0">Run complete</h2>
+    <div id="finScore">0</div>
+    <div id="finBest"></div>
+    <div class="actions" style="justify-content:center"><button class="big" id="againBtn">RIDE AGAIN</button><button class="ghost" id="finishMenuBtn">MENU</button></div>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
