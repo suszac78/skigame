@@ -14,7 +14,9 @@ python3 -m http.server 8000
 
 Then go to http://localhost:8000. (Opening the file straight from disk won't work, because browsers block ES modules on `file://`.)
 
-It also works as-is on GitHub Pages.
+### Deploy (GitHub Pages)
+
+`.github/workflows/deploy.yml` publishes the game to GitHub Pages on every push to `main` (you can also run it by hand from the Actions tab). One-time setup: in the repo go to **Settings → Pages → Build and deployment → Source** and pick **GitHub Actions**. The game will then be at `https://<user>.github.io/<repo>/`.
 
 ## Courses
 
