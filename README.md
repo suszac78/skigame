@@ -16,7 +16,7 @@ Then go to http://localhost:8000. (Opening the file straight from disk won't wor
 
 ### Deploy (GitHub Pages)
 
-`.github/workflows/deploy.yml` publishes the game to GitHub Pages on every push to `main` (you can also run it by hand from the Actions tab). One-time setup: in the repo go to **Settings → Pages → Build and deployment → Source** and pick **GitHub Actions**. The game will then be at `https://<user>.github.io/<repo>/`.
+`.github/workflows/deploy.yml` publishes the game to GitHub Pages on every push to `main` (or to this `claude/...` branch) (you can also run it by hand from the Actions tab). One-time setup: in the repo go to **Settings → Pages → Build and deployment → Source** and pick **GitHub Actions**. The game will then be at `https://<user>.github.io/<repo>/`.
 
 ## Courses
 
