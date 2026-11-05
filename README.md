@@ -32,11 +32,14 @@ Then go to http://localhost:8000. (Opening the file straight from disk won't wor
 | W / ↑ | tuck / push | frontflip | nose press |
 | S / ↓ | brake | backflip | tail press |
 | Space | hold to charge, release to ollie | | pop off |
-| Q / E | | roll (side flips, rodeos) | |
+| Z / X | | roll (side flips, rodeos) | |
+| E | | Japan grab | |
+| Q | | Tail grab | |
+| C | nose butter (steer while holding to spin it) | | |
 | J K L I | | grabs 1–4 | |
 | Shift + J K L I | | grabs 5–8 | |
 | R | respawn at checkpoint | | |
-| C | change camera | | |
+| V | change camera | | |
 | Esc / P | pause | | |
 
 Grabs:
@@ -45,7 +48,7 @@ Grabs:
 
 Trick tips:
 - Hold a direction while you pop (or at the lip) to pre-wind a spin.
-- Spin plus backflip makes a **cork**, spin plus frontflip a **misty**, and spin plus roll a **rodeo**.
+- Back flip on its own is a **Wildcat**, front flip a **Tamedog**. Spin plus backflip makes a **cork**, spin plus frontflip a **misty**, and spin plus roll a **rodeo**.
 - Hold the keys longer for double or triple corks.
 - Land with the board or skis pointing down the hill (forwards or switch).
 

@@ -41,8 +41,8 @@ export function nameAirTrick(rec) {
     // flips with little spin
     const mult = MULT[Math.min(totalInv, 5)];
     if (rolls > flips) core = prefix + mult + 'Side Flip';
-    else if (rec.flip > 0) core = prefix + mult + 'Frontflip';
-    else core = prefix + mult + 'Backflip';
+    else if (rec.flip > 0) core = prefix + mult + 'Tamedog';
+    else core = prefix + mult + 'Wildcat';
   } else {
     const mult = MULT[Math.min(totalInv, 5)];
     let kind;

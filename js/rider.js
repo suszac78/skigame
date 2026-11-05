@@ -249,13 +249,16 @@ export class RiderModel {
 
     // lean & press on the tilt group
     const lean = mode === 'ground' ? r.lean : 0;
-    const press = mode === 'rail' ? r.press * 0.22 : 0;
+    const butter = mode === 'ground' ? (r.butter || 0) : 0;
+    const press = mode === 'rail' ? r.press * 0.22 : butter * 0.3;
     let tweak = 0;
     if (grabIdx >= 0) {
       const gdef = (ski ? SKI_GRABS : BOARD_GRABS)[grabIdx];
       tweak = (gdef.tweak || 0) * r.grabBlend;
     }
     this.tilt.rotation.set(press, 0, -lean * (ski ? 0.8 : 0.9));
+    // pivot the press on the nose so it stays on the snow
+    this.tilt.position.set(0, butter * Math.sin(0.3) * (ski ? 0.85 : 0.75), 0);
     this.equip.rotation.set(0, 0, 0);
     if (!ski) this.equip.rotation.z = tweak * 0.8 * this.noseSign; else this.equip.rotation.x = -tweak * 0.6;
 

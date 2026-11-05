@@ -9,6 +9,10 @@ import { Sound } from './sound.js';
 
 const $ = (id) => document.getElementById(id);
 const STEP = 1 / 120;
+const PIVOT_H = 0.85; // height of the rider's centre of mass above the board
+const PIVOT_LOCAL = new THREE.Vector3(0, PIVOT_H, 0);
+const WORLD_UP = new THREE.Vector3(0, 1, 0);
+const pivotOff = new THREE.Vector3();
 
 // ------------------------------------------------------------------ settings
 const SETTINGS_KEY = 'frostline.settings.v1';
@@ -175,6 +179,7 @@ function buildCheatSheet(el) {
     <div><kbd>${k('up')}</kbd><kbd>${k('down')}</kbd> tuck / brake · front / back flip in air</div>
     <div><kbd>${k('jump')}</kbd> hold &amp; release to ollie · pre-wind spins by holding a direction</div>
     <div><kbd>${k('rollL')}</kbd><kbd>${k('rollR')}</kbd> roll (rodeos, side flips) · combine with spin + flip for corks</div>
+    <div><kbd>${k('grabJapan')}</kbd> Japan · <kbd>${k('grabTail')}</kbd> Tail · <kbd>${k('butter')}</kbd> nose butter (steer while holding to spin it)</div>
     <div><kbd>${k('grab1')}</kbd>${g[0]} <kbd>${k('grab2')}</kbd>${g[1]} <kbd>${k('grab3')}</kbd>${g[2]} <kbd>${k('grab4')}</kbd>${g[3]}</div>
     <div>hold <kbd>${k('grabAlt')}</kbd> for ${g[4]}, ${g[5]}, ${g[6]}, ${g[7]}</div>
     <div>On rails: <kbd>${k('left')}</kbd><kbd>${k('right')}</kbd> swap 90°, <kbd>${k('up')}</kbd><kbd>${k('down')}</kbd> press, <kbd>${k('jump')}</kbd> pop off</div>
@@ -346,6 +351,13 @@ function frame(now) {
     const alpha = acc / STEP;
     renderPos.lerpVectors(rider.prevPos, rider.pos, alpha);
     renderQuat.copy(rider.quat);
+    // rotate around the middle of the body, not the board: keep the body's centre on the
+    // physics path and swing the feet around it
+    if (rider.mode === 'air' || rider.mode === 'crash') {
+      const up = rider.mode === 'air' ? rider.upBase : WORLD_UP;
+      pivotOff.copy(PIVOT_LOCAL).applyQuaternion(renderQuat);
+      renderPos.addScaledVector(up, PIVOT_H).sub(pivotOff);
+    }
     model.update(rider, dt, renderPos, renderQuat);
     computeCamera(dt, false);
     world.update(dt, renderPos, camera);

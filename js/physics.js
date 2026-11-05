@@ -5,7 +5,9 @@ import { GRABS, nameAirTrick, scoreAirTrick, nameRailTrick, scoreRailTrick } fro
 
 const V3 = THREE.Vector3;
 const Y = new V3(0, 1, 0);
-export const G = 10.8;
+export const G = 12.5;
+const DRAG = 0.0019;     // air drag per m of speed^2
+const FRICTION = 0.02;   // snow friction
 const TAU = Math.PI * 2;
 const wrap = (a) => { a = (a + Math.PI) % TAU; if (a < 0) a += TAU; return a - Math.PI; };
 
@@ -110,6 +112,7 @@ export class Rider {
     this.crashT = 0;
     this.groundTime = 1;
     this.brake = 0; this.tuck = 0;
+    this.butter = 0; this.butterRec = null;
     this.press = 0;
     this.rail = null;
     this.combo = [];
@@ -173,8 +176,16 @@ export class Rider {
     // gravity
     this.vel.y -= G * dt;
 
+    // nose butter: press on the nose, steer to spin the board around while the body keeps sliding
+    const buttering = !!inp.butter && sp > 2;
+    if (buttering) {
+      if (!this.butterRec) this.butterRec = { time: 0, rot: 0 };
+      this.butterRec.time += dt;
+    }
+    this.butter += ((buttering ? 1 : 0) - this.butter) * Math.min(1, dt * 10);
+
     // steering rotates the board heading
-    const turn = steer * P.turnRate * (0.55 + 0.45 * clamp(1 - sp / 30, 0, 1)) * (this.brake > 0.5 ? 1.4 : 1);
+    const turn = buttering ? steer * 5.5 : steer * P.turnRate * (0.55 + 0.45 * clamp(1 - sp / 30, 0, 1)) * (this.brake > 0.5 ? 1.4 : 1);
     rotateAround(this.heading, n, turn * dt);
     this.heading.projectOnPlane(n).normalize();
 
@@ -182,7 +193,13 @@ export class Rider {
     const vn = this.vel.dot(n);
     const vt = tmpV.copy(this.vel).addScaledVector(n, -vn);
     const vtl = vt.length();
-    if (vtl > 0.3) {
+    if (buttering) {
+      this.butterRec.rot += turn * dt;
+      this.vel.multiplyScalar(1 - 0.15 * dt);
+    } else if (this.butterRec) {
+      this.finishButter();
+    }
+    if (vtl > 0.3 && !buttering) {
       const dirSign = vt.dot(this.heading) >= 0 ? 1 : -1;
       this.switch = dirSign < 0;
       const fwd = tmpV2.copy(this.heading).multiplyScalar(dirSign);
@@ -205,12 +222,14 @@ export class Rider {
     this.brake += ((inp.down && !inp.jump ? 1 : 0) - this.brake) * Math.min(1, dt * 6);
     const spd = this.vel.length();
     if (spd > 0.01) {
-      const k = 0.0042 * (1 - 0.45 * this.tuck);
-      let decel = k * spd * spd + 0.035 * G * n.y + this.brake * 7.5;
+      const k = DRAG * (1 - 0.5 * this.tuck);
+      let decel = k * spd * spd + FRICTION * G * n.y + this.brake * 7.5;
       this.vel.multiplyScalar(Math.max(0, spd - decel * dt) / spd);
     }
     // push off at low speed
     if (inp.up && spd < 7) this.vel.addScaledVector(this.heading, (this.switch ? -1 : 1) * 3.2 * dt);
+    // tucking adds a little extra push so speed keeps building
+    if (this.tuck > 0.5 && spd > 1) this.vel.addScaledVector(this.vel, (1.2 * this.tuck / spd) * dt);
 
     // pipe / quarter pump: gain energy dropping down steep transitions
     if (n.y < 0.9 && this.vel.y < 0) {
@@ -264,6 +283,17 @@ export class Rider {
     this.landSquash *= Math.exp(-dt * 6);
   }
 
+  finishButter() {
+    const b = this.butterRec;
+    this.butterRec = null;
+    if (!b || b.time < 0.35) return;
+    const deg = Math.round(Math.abs(b.rot) * 180 / Math.PI / 180) * 180;
+    const name = 'Nose Butter' + (deg >= 180 ? ' ' + deg : '');
+    const pts = Math.round(120 + b.time * 160 + deg * 0.9);
+    const rec = { kind: 'butter', name, basePts: pts, landing: 'clean' };
+    this.addTrick(rec);
+  }
+
   applyAssist(dt) {
     const m = this.map;
     const s = -this.pos.z;
@@ -271,13 +301,13 @@ export class Rider {
     for (const L of m.lips) {
       if (!L.ideal) continue;
       const ds = -L.z - s;
-      if (ds > 0 && ds < 45 && Math.abs(this.pos.x - L.x) < L.w * 0.5 + 2.5) { lip = L; break; }
+      if (ds > 0 && ds < 32 && Math.abs(this.pos.x - L.x) < L.w * 0.5 + 2.5) { lip = L; break; }
     }
     if (!lip) return;
     const sp = this.vel.length();
     // energy needed now to arrive at the lip with the ideal speed (gravity + rough friction/drag losses)
     const dist = -lip.z + this.pos.z;
-    const loss = (0.035 * G + 0.0042 * lip.ideal * lip.ideal) * dist;
+    const loss = (FRICTION * G + DRAG * lip.ideal * lip.ideal) * dist;
     const need = Math.sqrt(Math.max(16, lip.ideal * lip.ideal + 2 * G * (lip.y - this.pos.y) + 2 * loss));
     const a = clamp((need - sp) * 2.0, -7, 6);
     if (sp > 0.5) this.vel.multiplyScalar((sp + a * dt) / sp);
@@ -301,6 +331,8 @@ export class Rider {
 
   // ---------------------------------------------------------------- takeoff / air
   takeoff(inp, ollie) {
+    if (this.butterRec) this.finishButter();
+    this.butter = 0;
     const n = this.n;
     this.mode = 'air';
     this.airTime = 0;
@@ -404,6 +436,8 @@ export class Rider {
     // grabs
     let gi = -1;
     for (let i = 0; i < 4; i++) if (inp.grab[i]) { gi = i + (inp.grabAlt ? 4 : 0); break; }
+    if (gi < 0 && inp.grabJapan) gi = GRABS[this.sport].indexOf('Japan');
+    if (gi < 0 && inp.grabTail) gi = GRABS[this.sport].indexOf('Tail');
     if (gi !== this.grabIdx) {
       this.grabIdx = gi;
       if (gi >= 0) this.grabs.push({ name: GRABS[this.sport][gi], time: 0, idx: gi });
@@ -488,6 +522,7 @@ export class Rider {
   addTrick(rec) {
     let name, pts;
     if (rec.kind === 'air') { name = nameAirTrick(rec); pts = scoreAirTrick(rec); }
+    else if (rec.kind === 'butter') { name = rec.name; pts = rec.basePts; }
     else { name = nameRailTrick(rec); pts = scoreRailTrick(rec); }
     const seen = this.trickCounts[name] || 0;
     pts = Math.round(pts * Math.pow(0.75, seen));
@@ -574,7 +609,8 @@ export class Rider {
     }
   }
 
-  enterRail(ri, seg, t, dir) {
+  enterRail(ri, seg, t, dirIn) {
+    const dir = dirIn.clone(); // dirIn is a shared scratch vector that updateQuat() overwrites
     const r = this.map.rails[ri];
     let onSpin = 0;
     // board orientation relative to rail

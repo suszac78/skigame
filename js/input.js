@@ -11,6 +11,9 @@ export const ACTIONS = [
   { id: 'grab3', label: 'Grab 3' },
   { id: 'grab4', label: 'Grab 4' },
   { id: 'grabAlt', label: 'Alt grab set (hold)' },
+  { id: 'grabJapan', label: 'Japan grab' },
+  { id: 'grabTail', label: 'Tail grab' },
+  { id: 'butter', label: 'Nose butter (hold on the snow, steer to spin)' },
   { id: 'rollL', label: 'Roll Left (side flips / rodeos)' },
   { id: 'rollR', label: 'Roll Right (side flips / rodeos)' },
   { id: 'reset', label: 'Respawn at checkpoint' },
@@ -29,14 +32,17 @@ export const DEFAULT_BINDS = {
   grab3: ['KeyL', 'Numpad6'],
   grab4: ['KeyI', 'Numpad8'],
   grabAlt: ['ShiftLeft', 'ShiftRight'],
-  rollL: ['KeyQ', ''],
-  rollR: ['KeyE', ''],
+  grabJapan: ['KeyE', ''],
+  grabTail: ['KeyQ', ''],
+  butter: ['KeyC', ''],
+  rollL: ['KeyZ', ''],
+  rollR: ['KeyX', ''],
   reset: ['KeyR', ''],
-  camera: ['KeyC', ''],
+  camera: ['KeyV', ''],
   pause: ['Escape', 'KeyP'],
 };
 
-const STORE = 'frostline.binds.v1';
+const STORE = 'frostline.binds.v2';
 
 export function keyLabel(code) {
   if (!code) return '—';
@@ -108,6 +114,9 @@ export class Input {
       jump: this.held('jump') || p.jump,
       grab: [this.held('grab1') || p.g1, this.held('grab2') || p.g2, this.held('grab3') || p.g3, this.held('grab4') || p.g4],
       grabAlt: this.held('grabAlt') || p.alt,
+      grabJapan: this.held('grabJapan'),
+      grabTail: this.held('grabTail'),
+      butter: this.held('butter') || p.butter,
       rollL: this.held('rollL') || p.rollL,
       rollR: this.held('rollR') || p.rollR,
       jumpPressed: this.pressed('jump'),
@@ -117,7 +126,7 @@ export class Input {
   endFrame() { this.pressedOnce.clear(); this.padPressed = {}; }
 
   pollPad() {
-    this.pad = { left: false, right: false, up: false, down: false, jump: false, g1: false, g2: false, g3: false, g4: false, alt: false, rollL: false, rollR: false };
+    this.pad = { butter: false, left: false, right: false, up: false, down: false, jump: false, g1: false, g2: false, g3: false, g4: false, alt: false, rollL: false, rollR: false };
     this.padPressed = this.padPressed || {};
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
     const gp = pads && Array.from(pads).find((x) => x && x.connected);
@@ -131,7 +140,8 @@ export class Input {
     P.g1 = b(2); P.g2 = b(1); P.g3 = b(3); P.g4 = b(7);
     P.alt = b(6);
     P.rollL = b(4); P.rollR = b(5);
+    P.butter = b(10); // left stick click
     const edge = (name, val) => { if (val && !this.padPrev[name]) this.padPressed[name] = true; this.padPrev[name] = val; };
-    edge('jump', P.jump); edge('pause', b(9)); edge('reset', b(8)); edge('camera', b(11) || b(10));
+    edge('jump', P.jump); edge('pause', b(9)); edge('reset', b(8)); edge('camera', b(11));
   }
 }

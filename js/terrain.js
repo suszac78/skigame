@@ -207,9 +207,9 @@ function tableJump(alpha, s0, o) {
 function slopestyle() {
   const alpha = 12;
   const specs = [
-    { name: 'Jump 1', theta: 26, R: 9, table: 5, beta: 29, approach: 14, wIn: 6.5, wOut: 20 },
-    { name: 'Jump 2', theta: 29, R: 12, table: 8, beta: 31, approach: 18, wIn: 7.5, wOut: 22 },
-    { name: 'Jump 3', theta: 32, R: 15, table: 11, beta: 32, approach: 22, wIn: 8.5, wOut: 24 },
+    { name: 'Jump 1', theta: 27, R: 13, table: 8, beta: 30, approach: 20, wIn: 7.5, wOut: 22 },
+    { name: 'Jump 2', theta: 30, R: 17, table: 12, beta: 32, approach: 25, wIn: 8.5, wOut: 24 },
+    { name: 'Jump 3', theta: 33, R: 21, table: 16, beta: 33, approach: 30, wIn: 9.5, wOut: 26 },
   ];
   const features = [];
   let s0 = 70;
